@@ -100,6 +100,14 @@ def cli(decision_task_id: str, records: int, root_url: str, kind: str, workertyp
         # Determine cache usage
         use_cache = not no_cache
 
+        # Show cache location
+        from tc_resource_top.cache import get_cache_dir
+        cache_dir = get_cache_dir(decision_task_id)
+        if use_cache:
+            click.echo(f"Cache: {cache_dir}")
+        else:
+            click.echo(f"Cache: disabled (--no-cache)")
+
         # Download task graph from decision task
         click.echo(f"Downloading task graph from decision task {decision_task_id}...")
         task_graph = api.get_task_graph(queue, decision_task_id, use_cache=use_cache)

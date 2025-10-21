@@ -7,7 +7,7 @@ from typing import Optional
 import orjson
 
 
-CACHE_ROOT = Path("/tmp/perfshepherd")
+CACHE_ROOT = Path("/tmp/tc-top")
 
 
 def get_cache_dir(decision_task_id: str, subdir: Optional[str] = None) -> Path:

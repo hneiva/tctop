@@ -1,4 +1,4 @@
-# tc-resource-top
+# tc-top
 
 A CLI tool for analyzing Taskcluster resource usage metrics. Given a decision task ID, it finds test tasks in the task group, downloads their `resource-usage.json` artifacts, and displays the top N tasks by CPU, virtual memory, and IO rate.
 
@@ -30,6 +30,18 @@ uv run tc-top <decision_task_id>
 # Show top 20 tasks per metric
 uv run tc-top <decision_task_id> --records 20
 
+# Filter by workerType (regex pattern)
+uv run tc-top <decision_task_id> --workerType '.*-amd'
+
+# Filter by task label (regex pattern)
+uv run tc-top <decision_task_id> --label '.*xpcshell.*'
+
+# Filter by task kind (regex pattern, default: '^(test|mochitest)$')
+uv run tc-top <decision_task_id> --kind '^test$'
+
+# Skip cache and download fresh data
+uv run tc-top <decision_task_id> --no-cache
+
 # Use a different Taskcluster instance
 uv run tc-top <decision_task_id> --root-url https://taskcluster.example.com
 ```
@@ -48,6 +60,42 @@ This will:
 5. Display three ranked tables showing the top tasks per metric
 
 **Note:** Taskcluster tasks and artifacts expire after a period of time (typically 1 year for artifacts). If you encounter "Task not found" or "Resource not found" errors, the decision task or its associated test tasks may have expired. Use a recent decision task ID from an active Taskcluster instance.
+
+## Caching
+
+The tool caches downloaded data to `/tmp/tc-top/<decision_task_id>/` for faster repeated access:
+
+```
+/tmp/tc-top/<decision_task_id>/
+├── task-graph.json                    # Cached task graph
+├── artifacts/<task_id>.json           # Cached artifact listings
+└── metrics/<task_id>.json             # Cached resource-usage.json files
+```
+
+### Cache Benefits
+- **First run**: Downloads and caches all data (~3-4 seconds)
+- **Subsequent runs**: Uses cached data (~0.7-0.9 seconds) - **~97% faster**
+- **Artifact listing cache**: Avoids repeated API calls to `listLatestArtifacts()`
+- **Connection pooling**: Reuses HTTP connections to avoid SSL handshake overhead
+
+### Cache Management
+```bash
+# Skip cache and force fresh download
+uv run tc-top <decision_task_id> --no-cache
+
+# Clear cache for a specific decision task
+rm -rf /tmp/tc-top/<decision_task_id>
+
+# Clear all cached data
+rm -rf /tmp/tc-top
+```
+
+### Performance
+With caching and connection pooling enabled:
+- **Without cache**: 27s → 3.3s (87% faster)
+- **With cache**: 27s → 0.8s (97% faster)
+
+The combination of HTTP connection pooling and artifact listing caching provides exceptional performance for iterative analysis workflows.
 
 ## Field Mapping
 
