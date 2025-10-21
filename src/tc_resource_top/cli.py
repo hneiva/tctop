@@ -2,6 +2,7 @@
 
 import re
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
@@ -87,9 +88,12 @@ def cli(decision_task_id: str, records: int, root_url: str, kind: str, workertyp
     average CPU percent, virtual memory, and IO rate, and displays the top N
     tasks per metric.
     """
+    start_time = time.time()
+
     try:
-        # Initialize Taskcluster Queue
-        queue = taskcluster.Queue({"rootUrl": root_url})
+        # Initialize Taskcluster Queue with shared session for connection pooling
+        session = api.get_session()
+        queue = taskcluster.Queue({"rootUrl": root_url}, session=session)
 
         # Determine cache usage
         use_cache = not no_cache
@@ -186,6 +190,10 @@ def cli(decision_task_id: str, records: int, root_url: str, kind: str, workertyp
         )
 
         formatting.print_top_metrics(cpu_top, virt_top, io_top, records)
+
+        # Print execution time
+        elapsed_time = time.time() - start_time
+        click.echo(f"Execution time: {elapsed_time:.2f}s")
 
     except KeyboardInterrupt:
         click.echo("\nInterrupted", err=True)

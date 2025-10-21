@@ -5,10 +5,52 @@ import gzip
 import io
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 import taskcluster
 import orjson
 
 from tc_resource_top import cache
+
+
+# Global session with connection pooling
+_session = None
+
+
+def get_session() -> requests.Session:
+    """
+    Get or create a shared requests session with connection pooling.
+
+    Configures connection pooling to reuse connections and avoid
+    repeated SSL handshakes, which are expensive (~0.9s each).
+
+    Returns:
+        Configured requests.Session with connection pooling
+    """
+    global _session
+    if _session is None:
+        _session = requests.Session()
+
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+
+        # Configure HTTP adapter with connection pooling
+        adapter = HTTPAdapter(
+            pool_connections=20,  # Number of connection pools to cache
+            pool_maxsize=30,      # Max connections per pool
+            max_retries=retry_strategy,
+            pool_block=False,
+        )
+
+        # Mount adapter for both http and https
+        _session.mount("http://", adapter)
+        _session.mount("https://", adapter)
+
+    return _session
 
 
 def get_task_graph(queue: taskcluster.Queue, decision_task_id: str, use_cache: bool = True) -> dict:
@@ -159,10 +201,11 @@ def download_artifact(
         if cached_data is not None:
             return cached_data
 
-    # Download from Taskcluster
+    # Download from Taskcluster using shared session with connection pooling
     try:
         url = queue.buildUrl("getLatestArtifact", task_id, artifact_name)
-        response = requests.get(url, timeout=30)
+        session = get_session()
+        response = session.get(url, timeout=30)
         response.raise_for_status()
 
         content = response.content
