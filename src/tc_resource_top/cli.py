@@ -31,7 +31,9 @@ def process_task(
     label = task_info["label"]
     worker_type = task_info.get("worker_type", "")
 
-    artifact_name = api.find_resource_usage_artifact(queue, task_id)
+    artifact_name = api.find_resource_usage_artifact(
+        queue, task_id, decision_task_id=decision_task_id, use_cache=use_cache
+    )
     if not artifact_name:
         return (task_id, label, worker_type, None)
 

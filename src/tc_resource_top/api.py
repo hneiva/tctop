@@ -136,21 +136,44 @@ def get_test_tasks_from_graph(task_graph: dict, kind_pattern: str = "^(test|moch
     return test_tasks
 
 
-def find_resource_usage_artifact(queue: taskcluster.Queue, task_id: str) -> str | None:
+def find_resource_usage_artifact(
+    queue: taskcluster.Queue,
+    task_id: str,
+    decision_task_id: Optional[str] = None,
+    use_cache: bool = True
+) -> str | None:
     """
     Find the resource-usage.json artifact for a task.
 
     Args:
         queue: Taskcluster Queue client
         task_id: The task ID
+        decision_task_id: Optional decision task ID for cache path
+        use_cache: Whether to use cache (default: True)
 
     Returns:
         The artifact name, or None if not found
     """
-    try:
-        artifacts = queue.listLatestArtifacts(task_id)
-    except Exception:
-        return None
+    # Try cache first
+    if use_cache and decision_task_id:
+        cache_path = cache.get_artifacts_path(decision_task_id, task_id)
+        cached_artifacts = cache.load_from_cache(cache_path)
+        if cached_artifacts is not None:
+            artifacts = cached_artifacts
+        else:
+            # Fetch from API
+            try:
+                artifacts = queue.listLatestArtifacts(task_id)
+                # Save to cache
+                cache.save_to_cache(cache_path, artifacts)
+            except Exception:
+                return None
+    else:
+        # No cache, fetch from API
+        try:
+            artifacts = queue.listLatestArtifacts(task_id)
+        except Exception:
+            return None
 
     # Look for resource-usage.json (case-insensitive)
     candidates = []

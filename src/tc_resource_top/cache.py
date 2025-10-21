@@ -54,6 +54,20 @@ def get_metrics_path(decision_task_id: str, task_id: str) -> Path:
     return get_cache_dir(decision_task_id, "metrics") / f"{task_id}.json"
 
 
+def get_artifacts_path(decision_task_id: str, task_id: str) -> Path:
+    """
+    Get the cache path for task artifact listings.
+
+    Args:
+        decision_task_id: The decision task ID
+        task_id: The task ID
+
+    Returns:
+        Path to cached artifact listing
+    """
+    return get_cache_dir(decision_task_id, "artifacts") / f"{task_id}.json"
+
+
 def load_from_cache(cache_path: Path) -> Optional[dict]:
     """
     Load data from cache if it exists.
