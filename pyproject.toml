@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tc-resource-top"
+version = "0.1.0"
+description = "CLI to analyze Taskcluster resource usage metrics"
+requires-python = ">=3.11"
+dependencies = [
+    "taskcluster",
+    "orjson",
+    "click",
+    "requests",
+]
+
+[project.scripts]
+tc-top = "tc_resource_top.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]

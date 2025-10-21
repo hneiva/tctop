@@ -1,0 +1,2 @@
+[console_scripts]
+tc-top = tc_resource_top.cli:cli

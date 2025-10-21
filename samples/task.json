@@ -1,0 +1,198 @@
+{
+  "provisionerId": "gecko-t",
+  "workerType": "t-linux-docker-noscratch-amd",
+  "taskQueueId": "gecko-t/t-linux-docker-noscratch-amd",
+  "schedulerId": "gecko-level-3",
+  "projectId": "none",
+  "taskGroupId": "WSaQdVPaTCGDBPiYr1X07g",
+  "dependencies": [
+    "KtHqf198Rwa-pTASPAvTmA",
+    "ZeG1NdN8TfyAWICKdxMDPA",
+    "Zl8u640hRwGRwUyh5tkRJw",
+    "bacJYxk8RMClE9bbuVudHg",
+    "fa4oSTVIQMq0WyX5q0wJEg"
+  ],
+  "requires": "all-completed",
+  "routes": [
+    "tc-treeherder.v2.autoland.4c27342106754b91bcf2b55d268e567ae6cb19b2"
+  ],
+  "priority": "low",
+  "retries": 5,
+  "created": "2025-10-15T15:26:23.304Z",
+  "deadline": "2025-10-16T15:26:23.304Z",
+  "expires": "2026-10-15T15:26:23.304Z",
+  "scopes": [
+    "secrets:get:project/taskcluster/gecko/hgfingerprint",
+    "secrets:get:project/taskcluster/gecko/hgmointernal",
+    "project:releng:services/tooltool/api/download/public",
+    "docker-worker:feature:allowPtrace",
+    "docker-worker:capability:device:loopbackVideo",
+    "docker-worker:cache:gecko-level-3-pip-v3-38439bed431008791a5f",
+    "docker-worker:cache:gecko-level-3-uv-v3-38439bed431008791a5f",
+    "docker-worker:cache:gecko-level-3-tooltool-cache-v3-38439bed431008791a5f"
+  ],
+  "payload": {
+    "env": {
+      "PYTHON": "python3",
+      "GECKO_PATH": "/builds/worker/checkouts/gecko",
+      "ENABLE_E10S": "false",
+      "MOZ_FETCHES": "[{\"artifact\":\"public/build/fix-stacks.tar.zst\",\"extract\":true,\"task\":\"Zl8u640hRwGRwUyh5tkRJw\"},{\"artifact\":\"public/build/minidump-stackwalk.tar.zst\",\"extract\":true,\"task\":\"KtHqf198Rwa-pTASPAvTmA\"},{\"artifact\":\"public/ort-wasm-simd-threaded.jsep.wasm\",\"extract\":true,\"task\":\"bacJYxk8RMClE9bbuVudHg\"}]",
+      "WORKING_DIR": "/builds/worker",
+      "REPOSITORIES": "{\"gecko\":\"Mozilla Firefox\"}",
+      "UV_CACHE_DIR": "/builds/worker/.task-cache/uv",
+      "HG_STORE_PATH": "/builds/worker/checkouts/hg-store",
+      "MOZ_NODE_PATH": "/usr/local/bin/node",
+      "MOZ_SCM_LEVEL": "3",
+      "NEED_PIPEWIRE": "true",
+      "PIP_CACHE_DIR": "/builds/worker/.task-cache/pip",
+      "GECKO_HEAD_REF": "4c27342106754b91bcf2b55d268e567ae6cb19b2",
+      "GECKO_HEAD_REV": "4c27342106754b91bcf2b55d268e567ae6cb19b2",
+      "MOZHARNESS_URL": "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/ZeG1NdN8TfyAWICKdxMDPA/artifacts/public/build/mozharness.zip",
+      "MOZ_AUTOMATION": "1",
+      "MOZ_BUILD_DATE": "20251015152500",
+      "TOOLTOOL_CACHE": "/builds/worker/tooltool-cache",
+      "MOZ_FETCHES_DIR": "fetches",
+      "MOZ_SOURCE_REPO": "https://hg.mozilla.org/integration/autoland",
+      "SCCACHE_DISABLE": "1",
+      "MOCHITEST_FLAVOR": "browser",
+      "MOZHARNESS_CONFIG": "unittests/linux_unittest.py remove_executables.py",
+      "MOZHARNESS_SCRIPT": "desktop_unittest.py",
+      "MOZILLA_BUILD_URL": "https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/ZeG1NdN8TfyAWICKdxMDPA/artifacts/public/build/target.tar.xz",
+      "TASKCLUSTER_CACHES": "/builds/worker/.task-cache/pip;/builds/worker/.task-cache/uv;/builds/worker/tooltool-cache",
+      "NEED_WINDOW_MANAGER": "true",
+      "TASKCLUSTER_VOLUMES": "/builds/worker/.task-cache/npm;/builds/worker/.task-cache/pip;/builds/worker/.task-cache/uv;/builds/worker/checkouts;/builds/worker/fetches;/builds/worker/tooltool-cache;/builds/worker/workspace",
+      "MOZ_SOURCE_CHANGESET": "4c27342106754b91bcf2b55d268e567ae6cb19b2",
+      "GECKO_BASE_REPOSITORY": "https://hg.mozilla.org/mozilla-unified",
+      "GECKO_HEAD_REPOSITORY": "https://hg.mozilla.org/integration/autoland",
+      "GECKO_REPOSITORY_TYPE": "hg",
+      "MOZHARNESS_TEST_PATHS": "{\"mochitest-browser-chrome\":[\"browser/base/content/test/static/browser.toml\",\"browser/components/search/test/browser/browser.toml\",\"docshell/test/browser/browser.toml\",\"toolkit/components/antitracking/test/browser/browser.toml\"]}",
+      "EXTRA_MOZHARNESS_CONFIG": "{\"installer_url\":\"https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/ZeG1NdN8TfyAWICKdxMDPA/artifacts/public/build/target.tar.xz\",\"test_packages_url\":\"https://firefox-ci-tc.services.mozilla.com/api/queue/v1/task/ZeG1NdN8TfyAWICKdxMDPA/artifacts/public/build/target.test_packages.json\"}"
+    },
+    "cache": {
+      "gecko-level-3-uv-v3-38439bed431008791a5f": "/builds/worker/.task-cache/uv",
+      "gecko-level-3-pip-v3-38439bed431008791a5f": "/builds/worker/.task-cache/pip",
+      "gecko-level-3-tooltool-cache-v3-38439bed431008791a5f": "/builds/worker/tooltool-cache"
+    },
+    "image": {
+      "path": "public/image.tar.zst",
+      "type": "task-image",
+      "taskId": "fa4oSTVIQMq0WyX5q0wJEg"
+    },
+    "command": [
+      "/builds/worker/bin/run-task",
+      "--",
+      "/builds/worker/bin/test-linux.sh",
+      "--setpref=gfx.webrender.software=true",
+      "--mochitest-suite=mochitest-browser-chrome",
+      "--setpref=media.peerconnection.mtransport_process=false",
+      "--setpref=network.process.enabled=false",
+      "--setpref=layers.d3d11.enable-blacklist=false",
+      "--total-chunk=8",
+      "--this-chunk=2",
+      "--download-symbols=ondemand"
+    ],
+    "features": {
+      "allowPtrace": true,
+      "taskclusterProxy": true
+    },
+    "artifacts": {
+      "public/logs": {
+        "path": "/builds/worker/workspace/logs/",
+        "type": "directory",
+        "expires": "2026-10-15T15:26:23.304Z"
+      },
+      "public/test": {
+        "path": "/builds/worker/artifacts/",
+        "type": "directory",
+        "expires": "2026-10-15T15:26:23.304Z"
+      },
+      "public/test_info": {
+        "path": "/builds/worker/workspace/build/blobber_upload_dir/",
+        "type": "directory",
+        "expires": "2026-10-15T15:26:23.304Z"
+      },
+      "public/xsession-errors.log": {
+        "path": "/builds/worker/.xsession-errors",
+        "type": "file",
+        "expires": "2026-10-15T15:26:23.304Z"
+      }
+    },
+    "maxRunTime": 5400,
+    "capabilities": {
+      "devices": {
+        "loopbackVideo": true
+      }
+    },
+    "onExitStatus": {
+      "retry": [
+        4,
+        72
+      ],
+      "purgeCaches": [
+        72
+      ]
+    }
+  },
+  "metadata": {
+    "name": "test-linux2404-64/opt-mochitest-browser-chrome-swr-2",
+    "owner": "avandolder@mozilla.com",
+    "source": "https://hg.mozilla.org/integration/autoland/file/4c27342106754b91bcf2b55d268e567ae6cb19b2/taskcluster/kinds/mochitest",
+    "description": "Mochitest browser-chrome run with software webrender enabled ([Treeherder job](https://treeherder.mozilla.org/#/jobs?repo=autoland&revision=4c27342106754b91bcf2b55d268e567ae6cb19b2&selectedTaskRun=AwNBCcF9TIyRaHdt8to5eg))"
+  },
+  "tags": {
+    "os": "linux",
+    "kind": "mochitest",
+    "label": "test-linux2404-64/opt-mochitest-browser-chrome-swr-2",
+    "project": "autoland",
+    "retrigger": "true",
+    "test-type": "mochitest",
+    "test-suite": "mochitest-browser-chrome",
+    "test-variant": "webrender-sw",
+    "trust-domain": "gecko",
+    "test-platform": "linux2404-64/opt",
+    "tests_grouped": "1",
+    "createdForUser": "avandolder@mozilla.com",
+    "worker-implementation": "docker-worker"
+  },
+  "extra": {
+    "index": {
+      "rank": 1760541900
+    },
+    "suite": "mochitest-browser-chrome",
+    "chunks": {
+      "total": 8,
+      "current": 2
+    },
+    "parent": "WSaQdVPaTCGDBPiYr1X07g",
+    "treeherder": {
+      "tier": 1,
+      "symbol": "bc2",
+      "jobKind": "test",
+      "machine": {
+        "platform": "linux2404-64"
+      },
+      "groupName": "Mochitests with software webrender enabled",
+      "collection": {
+        "opt": true
+      },
+      "groupSymbol": "M-swr"
+    },
+    "test-setting": {
+      "_hash": "fb38aa2ad79e",
+      "build": {
+        "type": "opt"
+      },
+      "runtime": {
+        "webrender-sw": true
+      },
+      "platform": {
+        "os": {
+          "name": "linux",
+          "version": "2404"
+        },
+        "arch": "64"
+      }
+    },
+    "treeherder-platform": "linux2404-64/opt"
+  }
+}

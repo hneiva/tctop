@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/tc_resource_top/__init__.py
+src/tc_resource_top/api.py
+src/tc_resource_top/cli.py
+src/tc_resource_top/formatting.py
+src/tc_resource_top/metrics.py
+src/tc_resource_top.egg-info/PKG-INFO
+src/tc_resource_top.egg-info/SOURCES.txt
+src/tc_resource_top.egg-info/dependency_links.txt
+src/tc_resource_top.egg-info/entry_points.txt
+src/tc_resource_top.egg-info/requires.txt
+src/tc_resource_top.egg-info/top_level.txt

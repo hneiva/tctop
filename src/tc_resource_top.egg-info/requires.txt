@@ -1,0 +1,4 @@
+taskcluster
+orjson
+click
+requests

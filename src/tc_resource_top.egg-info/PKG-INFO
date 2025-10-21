@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: tc-resource-top
+Version: 0.1.0
+Summary: CLI to analyze Taskcluster resource usage metrics
+Requires-Python: >=3.11
+Requires-Dist: taskcluster
+Requires-Dist: orjson
+Requires-Dist: click
+Requires-Dist: requests
