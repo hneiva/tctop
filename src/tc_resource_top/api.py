@@ -143,7 +143,7 @@ def find_resource_usage_artifact(
     use_cache: bool = True
 ) -> str | None:
     """
-    Find the resource-usage.json artifact for a task.
+    Find the profile_resource-usage.json artifact for a task.
 
     Args:
         queue: Taskcluster Queue client
@@ -175,20 +175,20 @@ def find_resource_usage_artifact(
         except Exception:
             return None
 
-    # Look for resource-usage.json (case-insensitive)
+    # Look for profile_resource-usage.json (case-insensitive)
     candidates = []
     for artifact in artifacts.get("artifacts", []):
         name = artifact.get("name", "")
-        if "resource-usage.json" in name.lower():
+        if "profile_resource-usage.json" in name.lower():
             candidates.append(name)
 
     if not candidates:
         return None
 
-    # Prefer exact match: /resource-usage.json (not prefixed with other words)
+    # Prefer exact match: /profile_resource-usage.json (not prefixed with other words)
     for candidate in candidates:
-        # Check if it ends with /resource-usage.json or is exactly resource-usage.json
-        if candidate.endswith("/resource-usage.json") or candidate == "resource-usage.json":
+        # Check if it ends with /profile_resource-usage.json or is exactly profile_resource-usage.json
+        if candidate.endswith("/profile_resource-usage.json") or candidate == "profile_resource-usage.json":
             return candidate
 
     # Fallback: shortest name
@@ -205,7 +205,7 @@ def download_artifact(
     """
     Download and parse an artifact.
 
-    Supports gzip compression transparently and caching for resource-usage.json.
+    Supports gzip compression transparently and caching for profile_resource-usage.json.
 
     Args:
         queue: Taskcluster Queue client
@@ -217,8 +217,8 @@ def download_artifact(
     Returns:
         Parsed JSON data, or None on error
     """
-    # Try cache for resource-usage.json if decision_task_id provided
-    if use_cache and decision_task_id and "resource-usage.json" in artifact_name.lower():
+    # Try cache for profile_resource-usage.json if decision_task_id provided
+    if use_cache and decision_task_id and "profile_resource-usage.json" in artifact_name.lower():
         cache_path = cache.get_metrics_path(decision_task_id, task_id)
         cached_data = cache.load_from_cache(cache_path)
         if cached_data is not None:
@@ -239,8 +239,8 @@ def download_artifact(
 
         data = orjson.loads(content)
 
-        # Save to cache for resource-usage.json
-        if use_cache and decision_task_id and "resource-usage.json" in artifact_name.lower():
+        # Save to cache for profile_resource-usage.json
+        if use_cache and decision_task_id and "profile_resource-usage.json" in artifact_name.lower():
             cache_path = cache.get_metrics_path(decision_task_id, task_id)
             cache.save_to_cache(cache_path, data)
 

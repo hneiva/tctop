@@ -55,9 +55,10 @@ uv run tc-top WSaQdVPaTCGDBPiYr1X07g
 This will:
 1. Download the `task-graph.json` from the decision task
 2. Extract all tasks with kind "test" from the task graph
-3. Download `resource-usage.json` artifacts concurrently from test tasks
+3. Download `profile_resource-usage.json` artifacts concurrently from test tasks
 4. Compute average CPU percent, virtual memory, and IO rate
 5. Display three ranked tables showing the top tasks per metric
+6. Display per-task-type aggregations with average and max values
 
 **Note:** Taskcluster tasks and artifacts expire after a period of time (typically 1 year for artifacts). If you encounter "Task not found" or "Resource not found" errors, the decision task or its associated test tasks may have expired. Use a recent decision task ID from an active Taskcluster instance.
 
@@ -69,7 +70,7 @@ The tool caches downloaded data to `/tmp/tc-top/<decision_task_id>/` for faster 
 /tmp/tc-top/<decision_task_id>/
 ├── task-graph.json                    # Cached task graph
 ├── artifacts/<task_id>.json           # Cached artifact listings
-└── metrics/<task_id>.json             # Cached resource-usage.json files
+└── metrics/<task_id>.json             # Cached profile_resource-usage.json files
 ```
 
 ### Cache Benefits
@@ -102,33 +103,32 @@ The combination of HTTP connection pooling and artifact listing caching provides
 This tool's implementation is based on analysis of sample files in `./samples/`:
 
 ### From `task-graph.json`
-- **Task kind filter**: `kind == "test"`
+- **Task kind filter**: `kind == "test"` or `"mochitest"`
   - The task graph is a dictionary where keys are task IDs
   - Each entry contains a `kind` field identifying the task type
-  - Example value: `"test"`
   - This identifies test tasks (as opposed to build, decision, or other task types)
   - The tool downloads `public/task-graph.json` from the decision task for efficient filtering
 
-### From `resource-usage.json`
-The resource usage file contains an array of samples, each with measurements:
+### From `profile_resource-usage.json`
+The profile resource usage file contains profiler markers with resource measurements:
 
-- **CPU Percent**: `samples[*].cpu_percent_mean`
-  - Type: Float (0-100 percentage)
-  - Example: `12.5` means 12.5% CPU usage
-  - Computed as: Mean of all sample values
+- **CPU Percent**: `.threads[].markers.data[]` where `type == "CPU"`
+  - Field: `cpuPercent` as string (e.g., "6.5%")
+  - Type: String percentage
+  - Computed as: Average of all CPU marker values
 
-- **Virtual Memory**: `samples[*].virt[0]`
+- **Virtual Memory**: `.threads[].markers.data[]` where `type == "Mem"`
+  - Field: `used` (bytes used)
   - Type: Integer (bytes)
-  - Example: `33652011008` (≈ 31.3 GiB)
-  - The `virt` field is an array; we use the first element (process virtual memory size)
-  - Computed as: Mean of all sample values
+  - Example: `1293303808` (≈ 1.2 GiB)
+  - System total estimated from `cached` and `buffers` fields
+  - Computed as: Average memory used as percentage of system total
 
-- **IO Counters**: `samples[*].io[2]` (read_bytes) and `samples[*].io[3]` (write_bytes)
-  - Type: Integer (bytes, cumulative counters)
-  - Example: `[1, 0, 4096, 8192, ...]` → read_bytes=4096, write_bytes=8192
-  - These are **cumulative** counters that increase over time
-  - Computed as: `(Δread_bytes + Δwrite_bytes) / Δtime` using first and last samples
-  - Timestamps from `samples[*].start` and `samples[*].end`
+- **IO**: `.threads[].markers.data[]` where `type == "IO"`
+  - Fields: `read_bytes` and `write_bytes`
+  - Type: Integer (bytes)
+  - Computed as: Sum of all read_bytes and write_bytes divided by time span
+  - Time span calculated from `.threads[].markers.startTime` and `endTime` arrays
 
 ## Output Format
 

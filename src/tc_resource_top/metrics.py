@@ -3,17 +3,16 @@
 from typing import NamedTuple
 
 
-# Field mappings derived from ./samples/resource-usage.json analysis
+# Field mappings derived from ./samples/profile_resource-usage.json analysis
 #
 # Structure observed:
-# - overall: aggregate statistics
-#   - cpu_percent_mean: float (0-100 percentage) - example: 26.97
-#   - io: array of integers (total IO counters) - example: [69, 68704, 1167360, 3862331392, ...]
-#   - duration: float (seconds) - example: 625.38
-# - system: system information
-#   - vmem_total: integer (total system virtual memory in bytes) - example: 33652011008
-# - samples: array of measurement objects (fallback if overall is unavailable)
-#   - virt: array of integers per process - example: [33652011008, 31841796096, 5.4]
+# - threads: array of thread objects
+#   - markers: marker data structure
+#     - data: array of marker objects with type-specific fields
+#       - type: "CPU" | "Mem" | "IO"
+#       - CPU markers: cpuPercent as string (e.g., "6.5%")
+#       - Mem markers: used (bytes as integer)
+#       - IO markers: read_bytes, write_bytes (integers)
 
 
 class TaskMetrics(NamedTuple):
@@ -35,20 +34,18 @@ class MetricsError(Exception):
 
 def compute_metrics(task_id: str, label: str, worker_type: str, resource_data: dict) -> TaskMetrics:
     """
-    Compute metrics from resource-usage.json data.
+    Compute metrics from profile_resource-usage.json data.
 
-    Uses the 'overall' section for aggregated data:
-    - CPU: overall.cpu_percent_mean (percentage 0-100)
-    - Virtual Memory: average of samples[*].virt arrays as % of system.vmem_total
-    - IO: sum of overall.io array / overall.duration for bytes per second
-
-    Fallback to samples if overall is not available.
+    Parses .threads[].markers.data array to extract:
+    - CPU: markers with type == "CPU" -> cpuPercent (string like "6.5%")
+    - Memory: markers with type == "Mem" -> used (bytes)
+    - IO: markers with type == "IO" -> sum(read_bytes, write_bytes)
 
     Args:
         task_id: Task ID
         label: Human-friendly task label
         worker_type: Worker type
-        resource_data: Parsed resource-usage.json content
+        resource_data: Parsed profile_resource-usage.json content
 
     Returns:
         Computed metrics
@@ -56,53 +53,100 @@ def compute_metrics(task_id: str, label: str, worker_type: str, resource_data: d
     Raises:
         MetricsError: If required fields are missing or invalid
     """
-    overall = resource_data.get("overall", {})
-    system = resource_data.get("system", {})
-    samples = resource_data.get("samples", [])
+    # Extract all markers from all threads
+    threads = resource_data.get("threads", [])
+    if not threads:
+        raise MetricsError("No threads found in profile data")
 
-    # CPU: use overall.cpu_percent_mean
-    cpu_percent = overall.get("cpu_percent_mean")
-    if cpu_percent is None:
-        # Fallback: average from samples
-        cpu_values = []
-        for sample in samples:
-            cpu = sample.get("cpu_percent_mean")
-            if cpu is not None and isinstance(cpu, (int, float)):
-                cpu_values.append(float(cpu))
+    cpu_values = []
+    mem_values = []
+    io_bytes_values = []
 
-        if not cpu_values:
-            raise MetricsError("No valid CPU data")
-        cpu_percent = sum(cpu_values) / len(cpu_values)
+    # Get system memory total for calculating percentage
+    # We'll use the meta section or calculate from mem markers
+    meta = resource_data.get("meta", {})
+    system_mem_total = None
 
-    # Virtual Memory: compute average of all virt values from samples, then calculate % of system total
+    for thread in threads:
+        markers = thread.get("markers", {})
+        marker_data = markers.get("data", [])
+
+        for marker in marker_data:
+            marker_type = marker.get("type")
+
+            if marker_type == "CPU":
+                # Parse cpuPercent string (e.g., "6.5%")
+                cpu_str = marker.get("cpuPercent", "")
+                if cpu_str:
+                    try:
+                        # Remove % sign and convert to float
+                        cpu_val = float(cpu_str.rstrip("%"))
+                        cpu_values.append(cpu_val)
+                    except (ValueError, AttributeError):
+                        pass
+
+            elif marker_type == "Mem":
+                # Memory used in bytes
+                mem_used = marker.get("used")
+                if mem_used is not None and isinstance(mem_used, (int, float)):
+                    mem_values.append(float(mem_used))
+
+                # Try to get total memory from cached field if available
+                if system_mem_total is None:
+                    cached = marker.get("cached")
+                    buffers = marker.get("buffers")
+                    if mem_used and cached and buffers:
+                        # Estimate total as used + cached + buffers (rough approximation)
+                        system_mem_total = mem_used + cached + buffers
+
+            elif marker_type == "IO":
+                # Sum read and write bytes
+                read_bytes = marker.get("read_bytes", 0)
+                write_bytes = marker.get("write_bytes", 0)
+                if isinstance(read_bytes, (int, float)) and isinstance(write_bytes, (int, float)):
+                    io_bytes_values.append(float(read_bytes + write_bytes))
+
+    # Compute average CPU percentage
+    if not cpu_values:
+        raise MetricsError("No valid CPU data")
+    cpu_percent = sum(cpu_values) / len(cpu_values)
+
+    # Compute average memory usage and convert to percentage
+    if not mem_values:
+        raise MetricsError("No valid memory data")
+    avg_mem_used = sum(mem_values) / len(mem_values)
+
+    # Convert to percentage - if we have system total, use it, otherwise report as 0
     virt_percent = 0.0
-    vmem_total = system.get("vmem_total")
+    if system_mem_total and system_mem_total > 0:
+        virt_percent = (avg_mem_used / system_mem_total) * 100
+    else:
+        # Fallback: assume typical system has ~32GB RAM
+        virt_percent = (avg_mem_used / (32 * 1024 * 1024 * 1024)) * 100
 
-    if samples and vmem_total and vmem_total > 0:
-        # Collect all virt values from all samples
-        all_virt_values = []
-        for sample in samples:
-            virt = sample.get("virt")
-            if virt and isinstance(virt, list):
-                for v in virt:
-                    if isinstance(v, (int, float)) and v > 0:
-                        all_virt_values.append(float(v))
+    # Compute average IO rate (bytes per second)
+    # We need to calculate the time span
+    io_bytes_per_sec = 0.0
+    if io_bytes_values:
+        # Get time span from markers
+        if threads and threads[0].get("markers"):
+            start_times = threads[0]["markers"].get("startTime", [])
+            end_times = threads[0]["markers"].get("endTime", [])
 
-        if all_virt_values:
-            avg_virt = sum(all_virt_values) / len(all_virt_values)
-            virt_percent = (avg_virt / vmem_total) * 100
+            if start_times and end_times:
+                # Filter out None values and calculate duration
+                valid_start_times = [t for t in start_times if t is not None]
+                valid_end_times = [t for t in end_times if t is not None]
 
-    if virt_percent == 0.0 and not samples:
-        raise MetricsError("No valid virtual memory data")
+                if valid_start_times and valid_end_times:
+                    min_start = min(valid_start_times)
+                    max_end = max(valid_end_times)
+                    duration = (max_end - min_start) / 1000.0  # Convert ms to seconds
 
-    # IO: sum all values in overall.io array and divide by duration
-    io_rate = 0.0
-    io_array = overall.get("io")
-    duration = overall.get("duration")
-
-    if io_array and isinstance(io_array, list) and duration and duration > 0:
-        total_io_bytes = sum(v for v in io_array if isinstance(v, (int, float)))
-        io_rate = total_io_bytes / duration
+                    if duration > 0:
+                        # Calculate rate: total bytes / duration
+                        total_io_bytes = sum(io_bytes_values)
+                        io_bytes_per_sec = total_io_bytes / duration
 
     return TaskMetrics(
         task_id=task_id,
@@ -110,5 +154,5 @@ def compute_metrics(task_id: str, label: str, worker_type: str, resource_data: d
         worker_type=worker_type,
         cpu_percent=cpu_percent,
         virt_percent=virt_percent,
-        io_bytes_per_sec=io_rate,
+        io_bytes_per_sec=io_bytes_per_sec,
     )

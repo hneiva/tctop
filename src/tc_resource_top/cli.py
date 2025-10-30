@@ -1,8 +1,10 @@
 """CLI entry point for tc-top."""
 
+import os
 import re
 import sys
 import time
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
@@ -10,6 +12,84 @@ import click
 import taskcluster
 
 from tc_resource_top import api, metrics, formatting
+
+
+def normalize_task_label(label: str) -> str:
+    """
+    Normalize a task label by removing the trailing numeric suffix.
+
+    Args:
+        label: Task label (e.g., "test-linux-xpcshell-2")
+
+    Returns:
+        Normalized label (e.g., "test-linux-xpcshell")
+    """
+    # Remove trailing -<digits> pattern
+    return re.sub(r'-\d+$', '', label)
+
+
+def print_task_type_aggregations(all_metrics: List[metrics.TaskMetrics]) -> None:
+    """
+    Print aggregated statistics per task type.
+
+    Groups metrics by normalized task label and displays average and max
+    values for CPU, virtual memory, and IO.
+
+    Args:
+        all_metrics: List of all computed task metrics
+    """
+    # Group metrics by normalized task label
+    task_groups = defaultdict(list)
+    for metric in all_metrics:
+        normalized_label = normalize_task_label(metric.label)
+        task_groups[normalized_label].append(metric)
+
+    # Compute aggregations for each task type
+    aggregations = []
+    for task_type, group_metrics in task_groups.items():
+        cpu_values = [m.cpu_percent for m in group_metrics]
+        virt_values = [m.virt_percent for m in group_metrics]
+        io_values = [m.io_bytes_per_sec for m in group_metrics]
+
+        aggregations.append({
+            'task_type': task_type,
+            'count': len(group_metrics),
+            'cpu_avg': sum(cpu_values) / len(cpu_values),
+            'cpu_max': max(cpu_values),
+            'virt_avg': sum(virt_values) / len(virt_values),
+            'virt_max': max(virt_values),
+            'io_avg': sum(io_values) / len(io_values),
+            'io_max': max(io_values),
+        })
+
+    # Sort by task type name
+    aggregations.sort(key=lambda x: x['task_type'])
+
+    # Print aggregations table
+    click.echo("\n" + "=" * 120)
+    click.echo("Per-Task-Type Aggregations")
+    click.echo("=" * 120)
+    click.echo(f"{'Task Type':<60} {'Count':<8} {'CPU Avg':<12} {'CPU Max':<12} {'RAM Avg':<12} {'RAM Max':<12} {'IO Avg':<15} {'IO Max':<15}")
+    click.echo("-" * 120)
+
+    for agg in aggregations:
+        cpu_avg_str = formatting.format_cpu_percent(agg['cpu_avg'])
+        cpu_max_str = formatting.format_cpu_percent(agg['cpu_max'])
+        virt_avg_str = formatting.format_percent(agg['virt_avg'])
+        virt_max_str = formatting.format_percent(agg['virt_max'])
+        io_avg_str = formatting.format_bytes_per_sec(agg['io_avg'])
+        io_max_str = formatting.format_bytes_per_sec(agg['io_max'])
+
+        click.echo(
+            f"{agg['task_type']:<60} "
+            f"{agg['count']:<8} "
+            f"{cpu_avg_str:<12} "
+            f"{cpu_max_str:<12} "
+            f"{virt_avg_str:<12} "
+            f"{virt_max_str:<12} "
+            f"{io_avg_str:<15} "
+            f"{io_max_str:<15}"
+        )
 
 
 def process_task(
@@ -172,7 +252,7 @@ def cli(decision_task_id: str, records: int, root_url: str, kind: str, workertyp
                 task_id, label, worker_type, resource_data = future.result()
 
                 if resource_data is None:
-                    click.echo(f"! Skipping {task_id}: no resource-usage.json", err=True)
+                    click.echo(f"! Skipping {task_id}: no profile_resource-usage.json", err=True)
                     continue
 
                 try:
@@ -200,6 +280,9 @@ def cli(decision_task_id: str, records: int, root_url: str, kind: str, workertyp
         )
 
         formatting.print_top_metrics(cpu_top, virt_top, io_top, records)
+
+        # Compute and display per-task-type aggregations
+        print_task_type_aggregations(all_metrics)
 
         # Print execution time
         elapsed_time = time.time() - start_time
